@@ -27,7 +27,7 @@ python integration_limbo/integrations/netbox_to_digitalocean/main.py --help
 In this example we just diff against NetBox main
 
 ```
-python integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --branch test --netbox-url "https://your.netbox"
+python integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --netbox-url "https://your.netbox"
 ```
 
 ## Run a Dry Run against an existing branch
@@ -64,8 +64,16 @@ docker rmi integration-limbo --force
 ```
 
 ### Create the image
+
 ```
 docker build -t integration-limbo:latest .
+```
+
+### Push it to the DockerHub
+
+```
+docker tag integration-limbo:latest mrmrcoleman/integration-limbo:latest
+docker push mrmrcoleman/integration-limbo:latest
 ```
 
 ## Run through Docker locally
