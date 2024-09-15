@@ -7,16 +7,10 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-## Reset NetBox
-```
-python reset_netbox.py
-```
-
 ## Provide API tokens via `.env` (local development)
 ! You can also specify API token on the command line. See --help for details
 
 ```
-cd integration_limbo
 cp .env.example .env
 
 # Put your API token values in .env
@@ -33,26 +27,26 @@ python integration_limbo/integrations/netbox_to_digitalocean/main.py --help
 In this example we just diff against NetBox main
 
 ```
-python integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --branch test --netbox-url "https://high-jump.netboxlabs.tech"
+python integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --branch test --netbox-url "https://your.netbox"
 ```
 
 ## Run a Dry Run against an existing branch
 
 ```
-python integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --branch existingbranch --netbox-url "https://high-jump.netboxlabs.tech"
+python integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --branch existingbranch --netbox-url "https://your.netbox"
 ```
 
 ## Run a Dry Run against an non-existant branch
 ! --force will create the branch if it doesn't already exist
 
 ```
-python integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --branch newbranch --force --netbox-url "https://high-jump.netboxlabs.tech"
+python integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --branch newbranch --force --netbox-url "https://your.netbox"
 ```
 
 ## Run a Sync
 
 ```
-python integration_limbo/integrations/netbox_to_digitalocean/main.py --sync --branch newbranch --force --netbox-url "https://high-jump.netboxlabs.tech"
+python integration_limbo/integrations/netbox_to_digitalocean/main.py --sync --branch newbranch --force --netbox-url "https://your.netbox"
 ```
 
 ## Creating the base image for Kriten.io
@@ -83,5 +77,5 @@ docker run --rm \
     -e DIGITAL_OCEAN_API_TOKEN="YourToken" \
     -v $(pwd)/integration_limbo/integrations/netbox_to_digitalocean/main.py:/app/integration_limbo/integrations/netbox_to_digitalocean/main.py \
     integration-limbo:latest \
-    python /app/integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --branch test --netbox-url "https://high-jump.netboxlabs.tech"
+    python /app/integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --branch test --netbox-url "https://your.netbox"
 ```
