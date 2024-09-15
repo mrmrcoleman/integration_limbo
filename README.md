@@ -13,7 +13,7 @@ python reset_netbox.py
 ```
 
 ## Provide API tokens via `.env` (local development)
-! You can also specify API token on the command line. See --help for details
+**Tip:** You can also specify API token on the command line. See --help for details
 
 ```
 cd integration_limbo
@@ -43,7 +43,7 @@ python integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run -
 ```
 
 ## Run a Dry Run against an non-existant branch
-! --force will create the branch if it doesn't already exist
+**Tip:** --force will create the branch if it doesn't already exist
 
 ```
 python integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --branch newbranch --force --netbox-url "https://high-jump.netboxlabs.tech"
@@ -75,7 +75,7 @@ docker build -t integration-limbo:latest .
 ```
 
 ## Run through Docker locally
-! This is just an example. Tailor the command line arguments to your own needs.
+**Tip:** This is just an example. Tailor the command line arguments to your own needs.
 
 ```
 docker run --rm \
