@@ -1,0 +1,4 @@
+pynetbox
+diffsync
+rich
+python-dotenv

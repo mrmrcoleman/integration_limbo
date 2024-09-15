@@ -1,0 +1,6 @@
+# Ignore the virtual environment
+venv/
+*.pyc
+__pycache__/
+*.log
+.env
