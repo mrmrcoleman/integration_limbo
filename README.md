@@ -87,3 +87,6 @@ docker run --rm \
     integration-limbo:latest \
     python /app/integration_limbo/integrations/netbox_to_digitalocean/main.py --dry-run --branch test --netbox-url "https://your.netbox"
 ```
+
+python setup.py sdist bdist_wheel
+pip install dist/kriten_netbox-0.1.1-py3-none-any.whl
