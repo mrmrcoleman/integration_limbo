@@ -1,8 +1,16 @@
 import requests
 import logging
+import json
+import os
 from diffsync import Adapter
 from diffsync.exceptions import ObjectNotFound
-from integration_limbo.integrations.netbox_to_digitalocean.models import ManufacturerModel, DeviceTypeModel, DeviceRoleModel, SiteModel, DeviceModel
+from integration_limbo.integrations.netbox_to_digitalocean.models import (
+    ManufacturerModel,
+    DeviceTypeModel,
+    DeviceRoleModel,
+    SiteModel,
+    DeviceModel,
+)
 
 # Setup basic logging
 logging.basicConfig(level=logging.INFO)
@@ -20,21 +28,22 @@ class DigitalOceanAdapter(Adapter):
     # Top level objects to sync
     top_level = ["manufacturer", "device_type", "device_role", "site", "device"]
 
-    def __init__(self, api_token, *args, **kwargs):
+    def __init__(self, api_token, test_mode=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.api_token = api_token
         self.api_base_url = "https://api.digitalocean.com/v2"
         self.headers = {
             "Authorization": f"Bearer {self.api_token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
         self.created_sites = {}  # Cache for created sites (regions)
+        self.test_mode = test_mode
 
     def load(self):
         """Load data from DigitalOcean and populate the models."""
         try:
             logger.info("### Starting data load from DigitalOcean ###")
-            
+
             # Load manufacturers
             self.load_manufacturers()
 
@@ -52,9 +61,9 @@ class DigitalOceanAdapter(Adapter):
         logger.debug("Loading manufacturers...")
         try:
             digitalocean_manufacturer = ManufacturerModel(
-                name="DigitalOcean", 
-                description="Cloud provider", 
-                slug="digitalocean"
+                name="DigitalOcean",
+                description="Cloud provider",
+                slug="digitalocean",
             )
             self.add(digitalocean_manufacturer)
             logger.debug(f"Loaded manufacturer: {digitalocean_manufacturer.name}")
@@ -79,14 +88,24 @@ class DigitalOceanAdapter(Adapter):
         try:
             response = requests.get(f"{self.api_base_url}/droplets", headers=self.headers)
             response.raise_for_status()
-            droplets = response.json().get("droplets", [])
+            droplets_data = response.json()
+
+            # Ensure the directory exists
+            os.makedirs('test_data/digitalocean/', exist_ok=True)
+
+            # Save to disk
+            if not self.test_mode:
+                with open('test_data/digitalocean/droplets.json', 'w') as f:
+                    json.dump(droplets_data, f, indent=4)
+
+            droplets = droplets_data.get("droplets", [])
             if not droplets:
                 logger.warning("No droplets returned from the API")
-            
+
             for droplet in droplets:
                 try:
                     logger.debug(f"Processing droplet: {droplet['name']}")
-                    
+
                     # Check if the device type already exists, if not, create it
                     device_type_slug = droplet["size_slug"]
                     try:
@@ -98,7 +117,7 @@ class DigitalOceanAdapter(Adapter):
                         new_device_type = DeviceTypeModel(
                             model=device_type_slug,
                             manufacturer_name="DigitalOcean",
-                            slug=device_type_slug
+                            slug=device_type_slug,
                         )
                         self.add(new_device_type)
 
@@ -115,7 +134,6 @@ class DigitalOceanAdapter(Adapter):
                             new_site = SiteModel(
                                 name=region_name,
                                 slug=droplet["region"]["slug"],
-                                region=region_name
                             )
                             self.add(new_site)
                             # Cache the created site to avoid redundant lookups
@@ -127,17 +145,19 @@ class DigitalOceanAdapter(Adapter):
                         device_type_name=device_type_slug,
                         device_role_name="Droplet",
                         site_name=region_name,
-                        status="active"
+                        status="active",
                     )
                     self.add(device)
                     logger.debug(f"Successfully added device: {droplet['name']}")
-                
+
                 except Exception as e:
                     logger.error(f"Error processing droplet {droplet['name']}: {e}")
                     # Continue processing the next droplet even if this one fails
                     continue
 
             logger.info(f"Successfully processed {len(droplets)} droplets")
-        
+
         except requests.exceptions.RequestException as e:
             logger.error(f"Error loading droplets from DigitalOcean API: {e}")
+        except Exception as e:
+            logger.error(f"Failed to load data from DigitalOcean: {e}")

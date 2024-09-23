@@ -1,16 +1,17 @@
 import pynetbox
 import logging
+import os
+from dotenv import load_dotenv
 
 # Setup basic logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# NetBox API configuration
-NETBOX_API_URL = "YOUR NETBOX URL"
-NETBOX_API_TOKEN = "YOUR API TOKEN"
+# Load environment variables from .env file
+load_dotenv()
 
 # Initialize the NetBox API client
-netbox = pynetbox.api(url=NETBOX_API_URL, token=NETBOX_API_TOKEN)
+netbox = pynetbox.api(url=os.getenv('NETBOX_API_URL'), token=os.getenv('NETBOX_API_TOKEN'))
 
 
 def delete_devices():
