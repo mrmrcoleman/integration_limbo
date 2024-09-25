@@ -34,7 +34,7 @@ class ManufacturerNetBoxModel(ManufacturerModel):
                 ids["id"] = manufacturer.id
                 return super().create(adapter, ids=ids, attrs=attrs)
         except Exception as e:
-            logger.error(f"Failed to create manufacturer '{ids['name']}': {e}")
+            logger.error(f"Failed to create manufacturer '{ids['name']}']: {e}")
         return None
 
     def update(self, attrs):
@@ -71,7 +71,7 @@ class ManufacturerNetBoxModel(ManufacturerModel):
                 logger.error(f"Manufacturer {self.name} not found in NetBox.")
         except Exception as e:
             logger.error(f"Failed to delete manufacturer {self.name}: {e}")
-        return False
+        return None
 
 
 class DeviceTypeNetBoxModel(DeviceTypeModel):
@@ -80,7 +80,6 @@ class DeviceTypeNetBoxModel(DeviceTypeModel):
     @classmethod
     def create(cls, adapter, ids, attrs):
         """Create a new device type in NetBox."""
-        # Get the manufacturer
         manufacturer = adapter.get(ManufacturerNetBoxModel, {"name": attrs["manufacturer_name"]})
         if not manufacturer:
             logger.error(f"Manufacturer '{attrs['manufacturer_name']}' not found.")
@@ -99,7 +98,7 @@ class DeviceTypeNetBoxModel(DeviceTypeModel):
                 ids["id"] = device_type.id
                 return super().create(adapter, ids=ids, attrs=attrs)
         except Exception as e:
-            logger.error(f"Failed to create device type '{ids['model']}': {e}")
+            logger.error(f"Failed to create device type '{ids['model']}']: {e}")
         return None
 
     def update(self, attrs):
@@ -107,11 +106,8 @@ class DeviceTypeNetBoxModel(DeviceTypeModel):
         try:
             device_type = self.adapter.netbox_api.dcim.device_types.get(self.id)
             if device_type:
-                # Get the manufacturer
                 manufacturer_name = attrs.get("manufacturer_name", self.manufacturer_name)
-                manufacturer = self.adapter.get(
-                    ManufacturerNetBoxModel, {"name": manufacturer_name}
-                )
+                manufacturer = self.adapter.get(ManufacturerNetBoxModel, {"name": manufacturer_name})
                 if not manufacturer:
                     logger.error(f"Manufacturer '{manufacturer_name}' not found.")
                     return None
@@ -131,7 +127,7 @@ class DeviceTypeNetBoxModel(DeviceTypeModel):
         return None
 
     def delete(self):
-        """Delete a device type in NetBox."""
+        """Delete a device type in NetBox, only if it has no devices."""
         try:
             device_type = self.adapter.netbox_api.dcim.device_types.get(self.id)
             if device_type:
@@ -145,7 +141,7 @@ class DeviceTypeNetBoxModel(DeviceTypeModel):
                 logger.error(f"Device type {self.model} not found in NetBox.")
         except Exception as e:
             logger.error(f"Failed to delete device type {self.model}: {e}")
-        return False
+        return None
 
 
 class DeviceRoleNetBoxModel(DeviceRoleModel):
@@ -167,7 +163,7 @@ class DeviceRoleNetBoxModel(DeviceRoleModel):
                 ids["id"] = device_role.id
                 return super().create(adapter, ids=ids, attrs=attrs)
         except Exception as e:
-            logger.error(f"Failed to create device role '{ids['name']}': {e}")
+            logger.error(f"Failed to create device role '{ids['name']}']: {e}")
         return None
 
     def update(self, attrs):
@@ -204,7 +200,7 @@ class DeviceRoleNetBoxModel(DeviceRoleModel):
                 logger.error(f"Device role {self.name} not found in NetBox.")
         except Exception as e:
             logger.error(f"Failed to delete device role {self.name}: {e}")
-        return False
+        return None
 
 
 class SiteNetBoxModel(SiteModel):
@@ -225,7 +221,7 @@ class SiteNetBoxModel(SiteModel):
                 ids["id"] = site.id
                 return super().create(adapter, ids=ids, attrs=attrs)
         except Exception as e:
-            logger.error(f"Failed to create site '{ids['name']}': {e}")
+            logger.error(f"Failed to create site '{ids['name']}']: {e}")
         return None
 
     def update(self, attrs):
@@ -247,7 +243,7 @@ class SiteNetBoxModel(SiteModel):
         return None
 
     def delete(self):
-        """Delete a site in NetBox."""
+        """Delete a site in NetBox, but only if it has no devices."""
         try:
             site = self.adapter.netbox_api.dcim.sites.get(self.id)
             if site:
@@ -261,7 +257,7 @@ class SiteNetBoxModel(SiteModel):
                 logger.error(f"Site {self.name} not found in NetBox.")
         except Exception as e:
             logger.error(f"Failed to delete site {self.name}: {e}")
-        return False
+        return None
 
 
 class DeviceNetBoxModel(DeviceModel):
@@ -300,7 +296,7 @@ class DeviceNetBoxModel(DeviceModel):
                 ids["id"] = device.id
                 return super().create(adapter, ids=ids, attrs=attrs)
         except Exception as e:
-            logger.error(f"Failed to create device '{ids['name']}': {e}")
+            logger.error(f"Failed to create device '{ids['name']}']: {e}")
         return None
 
     def update(self, attrs):
@@ -308,19 +304,14 @@ class DeviceNetBoxModel(DeviceModel):
         try:
             device = self.adapter.netbox_api.dcim.devices.get(self.id)
             if device:
-                # Get related objects
                 device_type_name = attrs.get("device_type_name", self.device_type_name)
-                device_type = self.adapter.get(
-                    DeviceTypeNetBoxModel, {"model": device_type_name}
-                )
+                device_type = self.adapter.get(DeviceTypeNetBoxModel, {"model": device_type_name})
                 if not device_type:
                     logger.error(f"Device type '{device_type_name}' not found.")
                     return None
 
                 device_role_name = attrs.get("device_role_name", self.device_role_name)
-                device_role = self.adapter.get(
-                    DeviceRoleNetBoxModel, {"name": device_role_name}
-                )
+                device_role = self.adapter.get(DeviceRoleNetBoxModel, {"name": device_role_name})
                 if not device_role:
                     logger.error(f"Device role '{device_role_name}' not found.")
                     return None
@@ -362,7 +353,7 @@ class DeviceNetBoxModel(DeviceModel):
                 logger.error(f"Device {self.name} not found in NetBox.")
         except Exception as e:
             logger.error(f"Failed to delete device {self.name}: {e}")
-        return False
+        return None
 
 
 class NetBoxAdapter(Adapter):
@@ -374,8 +365,7 @@ class NetBoxAdapter(Adapter):
     site = SiteNetBoxModel
     device = DeviceNetBoxModel
 
-    # Keep the original top_level order to preserve creation order
-    top_level = ["manufacturer", "device_type", "device_role", "site", "device"]
+    top_level = ["site", "manufacturer", "device_role"]
 
     def __init__(self, url, token, branch_schema_id=None, test_mode=False, *args, **kwargs):
         """Initialize the adapter with NetBox API connection."""
@@ -384,7 +374,6 @@ class NetBoxAdapter(Adapter):
         self.token = token
         self.netbox_api = pynetbox.api(self.url, self.token)
 
-        # Set the branch header if provided
         if branch_schema_id:
             self.netbox_api.http_session.headers["X-NetBox-Branch"] = branch_schema_id
 
@@ -393,11 +382,11 @@ class NetBoxAdapter(Adapter):
     def load(self):
         """Load data from NetBox into the DiffSync system."""
         logger.info("### Starting data load from NetBox ###")
-        self.load_manufacturers()
-        self.load_device_types()
-        self.load_device_roles()
-        self.load_sites()
-        self.load_devices()
+        self.load_sites()              
+        self.load_manufacturers()      
+        self.load_device_roles()       
+        self.load_device_types()       
+        self.load_devices()            
 
     def load_manufacturers(self):
         """Load Manufacturer data from NetBox."""
@@ -426,6 +415,12 @@ class NetBoxAdapter(Adapter):
                 id=device_type.id,
             )
             self.add(device_type_model)
+
+            # Add device_type as a child of the corresponding manufacturer
+            manufacturer = self.get(ManufacturerNetBoxModel, {"name": manufacturer_name})
+            manufacturer.add_child(device_type_model)
+            self.update(manufacturer)  # Update manufacturer
+            
         logger.info(f"Successfully loaded {len(device_types)} device types")
 
     def load_device_roles(self):
@@ -468,4 +463,18 @@ class NetBoxAdapter(Adapter):
                 id=device.id,
             )
             self.add(device_model)
+
+            # Add device as a child of its device_type, site, and device_role
+            device_type = self.get(DeviceTypeNetBoxModel, {"model": device.device_type.model})
+            device_type.add_child(device_model)
+            self.update(device_type)  # Update device_type
+
+            device_role = self.get(DeviceRoleNetBoxModel, {"name": device.role.name})
+            device_role.add_child(device_model)
+            self.update(device_role)  # Update device_role
+
+            site = self.get(SiteNetBoxModel, {"name": device.site.name})
+            site.add_child(device_model)
+            self.update(site)  # Update site
+
         logger.info(f"Successfully loaded {len(devices)} devices")

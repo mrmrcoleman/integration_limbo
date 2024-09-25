@@ -100,41 +100,21 @@ def run_sync(args, netbox_token, digital_ocean_token, test_mode=False):
     logger.info("Loading data from NetBox and DigitalOcean...")
     local_netbox.load()
     digital_ocean.load()
+    print(f"NB Data:\n{local_netbox.str()}")
+    print(f"DO Data:\n{digital_ocean.str()}")
 
     if args.dry_run:
         # If --dry-run is specified, just show the diff and exit
         diff = local_netbox.diff_from(digital_ocean)
         print("### DRY-RUN MODE: Displaying diff ###")
+        print(diff.summary())
         print(diff.str())
         sys.exit(0)
 
     if args.sync:
         # If --sync is specified, perform the sync operation
         print("### SYNC MODE: Synchronizing changes ###")
-
-        # First, process creations and updates (skip deletions)
-        logger.info("Synchronizing creations and updates...")
-        local_netbox.sync_from(digital_ocean, flags=DiffSyncFlags.SKIP_UNMATCHED_DST)
-
-        # Then, re-calculate the diff and process deletions
-        logger.info("Re-calculating diff and processing deletions...")
-        diff = local_netbox.diff_from(digital_ocean)
-
-        # Process deletions
-        logger.info("Processing deletions...")
-        for obj_type in diff.groups():
-            for diff_element in diff.children[obj_type].values():
-                if diff_element.action == DiffSyncActions.DELETE:
-                    obj = local_netbox.get(diff_element.type, diff_element.keys)
-                    if obj:
-                        success = obj.delete()
-                        if success:
-                            logger.info(f"Deleted {obj_type} {diff_element.name}")
-                        else:
-                            logger.error(f"Failed to delete {obj_type} {diff_element.name}")
-                    else:
-                        logger.warning(f"Object {obj_type} {diff_element.name} not found in destination for deletion")
-
+        local_netbox.sync_from(digital_ocean)
         print("### Sync complete! ###")
         sys.exit(0)
 

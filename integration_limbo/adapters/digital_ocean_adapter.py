@@ -26,7 +26,7 @@ class DigitalOceanAdapter(Adapter):
     device = DeviceModel
 
     # Top level objects to sync
-    top_level = ["manufacturer", "device_type", "device_role", "site", "device"]
+    top_level = ["site", "manufacturer", "device_role"]
 
     def __init__(self, api_token, test_mode=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -77,6 +77,7 @@ class DigitalOceanAdapter(Adapter):
         try:
             droplet_role = DeviceRoleModel(name="Droplet", slug="droplet")
             self.add(droplet_role)
+
             logger.debug(f"Loaded device role: {droplet_role.name}")
             logger.info("Successfully loaded device role: Droplet")
         except Exception as e:
@@ -109,46 +110,63 @@ class DigitalOceanAdapter(Adapter):
                     # Check if the device type already exists, if not, create it
                     device_type_slug = droplet["size_slug"]
                     try:
-                        self.get(DeviceTypeModel, {"model": device_type_slug})
+                        device_type_model = self.get(DeviceTypeModel, {"model": device_type_slug})
                         logger.debug(f"Reusing existing device type: {device_type_slug}")
                     except ObjectNotFound:
                         # If the device type does not exist, create it
                         logger.debug(f"Creating new device type for {device_type_slug}")
-                        new_device_type = DeviceTypeModel(
+                        device_type_model = DeviceTypeModel(
                             model=device_type_slug,
                             manufacturer_name="DigitalOcean",
                             slug=device_type_slug,
                         )
-                        self.add(new_device_type)
+                        self.add(device_type_model)
+
+                        # Add device type as a child of manufacturer
+                        digitalocean_manufacturer = self.get(ManufacturerModel, {"name": "DigitalOcean"})
+                        digitalocean_manufacturer.add_child(device_type_model)
+                        self.update(digitalocean_manufacturer)  # Update manufacturer
 
                     # Check if the site (region) already exists, if not, create it
                     region_name = droplet["region"]["name"]
                     if region_name in self.created_sites:
+                        site_model = self.created_sites[region_name]
                         logger.debug(f"Reusing existing site (region): {region_name}")
                     else:
                         try:
-                            self.get(SiteModel, {"name": region_name})
+                            site_model = self.get(SiteModel, {"name": region_name})
                             logger.debug(f"Reusing existing site (region): {region_name}")
                         except ObjectNotFound:
                             logger.debug(f"Creating new site (region) for {region_name}")
-                            new_site = SiteModel(
+                            site_model = SiteModel(
                                 name=region_name,
                                 slug=droplet["region"]["slug"],
                             )
-                            self.add(new_site)
+                            self.add(site_model)
                             # Cache the created site to avoid redundant lookups
-                            self.created_sites[region_name] = new_site
+                            self.created_sites[region_name] = site_model
 
                     # Create the device
-                    device = DeviceModel(
+                    device_model = DeviceModel(
                         name=droplet["name"],
                         device_type_name=device_type_slug,
                         device_role_name="Droplet",
                         site_name=region_name,
                         status="active",
                     )
-                    self.add(device)
+                    self.add(device_model)
                     logger.debug(f"Successfully added device: {droplet['name']}")
+
+                    # Establish child relationships (add device as a child of device type, site, and role)
+                    device_type_model.add_child(device_model)
+                    self.update(device_type_model)  # Update device type
+
+                    site_model.add_child(device_model)
+                    self.update(site_model)  # Update site
+
+                    droplet_role_model = self.get(DeviceRoleModel, {"name": "Droplet"})
+                    droplet_role_model.add_child(device_model)
+                    self.update(droplet_role_model)  # Update device role
 
                 except Exception as e:
                     logger.error(f"Error processing droplet {droplet['name']}: {e}")
